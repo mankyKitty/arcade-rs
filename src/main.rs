@@ -1,10 +1,11 @@
 extern crate sdl2;
 extern crate sdl2_image;
+extern crate sdl2_ttf;
 // #[macro_use] asks the compiler to import the macros defined
 // in the events module. Macros cannot be namespaced and the
 // expansion happens before namespaces exist.
 // #[macro_use]
-// mod events; 
+// mod events; ::views::ShipView::new(phi)
 
 mod phi;
 mod views;
@@ -13,7 +14,7 @@ use ::phi::{Events, Phi, View, ViewAction};
 
 fn main() {
     ::phi::spawn("ArcadeRS Shooter", |phi| {
-        Box::new(::views::ShipView::new(phi))
+        Box::new(::views::main_menu::MainMenuView::new(phi))
     });
 }
 //     // Init SDL2

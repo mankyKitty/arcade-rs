@@ -3,7 +3,13 @@ mod events;
 pub mod data;
 pub mod gfx;
 
+use ::std::path::Path;
+use ::std::collections::hash_map::HashMap;
+
+use ::phi::gfx::Sprite;
+
 use ::sdl2::render::Renderer;
+use ::sdl2::pixels::Color;
 
 // We cannot call functions at top-level.
 // However, `struct_events` is a macro!
@@ -14,7 +20,8 @@ struct_events!(
         key_down: Down,
         key_left: Left,
         key_right: Right,
-        key_space: Space
+        key_space: Space,
+        key_return: Return
     },
     else: {
         quit: Quit { .. }
@@ -26,6 +33,7 @@ struct_events!(
 pub struct Phi<'a> {
     pub events: Events,
     pub renderer: Renderer<'a>,
+		cached_fonts: HashMap<(&'static str, i32), ::sdl2_ttf::Font>,
 }
 
 impl<'window> Phi<'window> {
@@ -35,12 +43,42 @@ impl<'window> Phi<'window> {
 			Phi {
 				events: events,
 				renderer: renderer,
+				cached_fonts: HashMap::new(),
 			}
 		}
 
     pub fn output_size(&self) -> (u32,u32) {
         self.renderer.output_size().unwrap()
     }
+
+		pub fn ttf_str_sprite(&mut self, text: &str, font_path: &'static str, size: i32, color: Color) -> Option<Sprite> {
+			//? First, we verify whether the font is already cached. If this is the
+			//? case, we use it to render the text
+			if let Some(font) = self.cached_fonts.get(&(font_path, size)) {
+				return font.render(text, ::sdl2_ttf::blended(color)).ok()
+					.and_then(|s| self.renderer.create_texture_from_surface(&s).ok())
+					.map(Sprite::new)
+			}
+			//? Start by trying to load the font
+			::sdl2_ttf::Font::from_file(Path::new(font_path), size).ok()
+				.and_then(|font| {
+					//? If this works, we cache the font we acquired
+					self.cached_fonts.insert((font_path, size), font);
+					//? Then, we call the method recursively. Because we know that
+					//? the font has been cached, the `if` block will be executed
+					self.ttf_str_sprite(text, font_path, size, color)
+				})
+				//? Next steps must be wrapped in a closure because of the
+				//? borrow checker. `font` must live at least until the texture 
+				//? is created.
+				//? .and_then(|font| font
+					//? If this worked, we try to create a surface from the font.
+				//? 	.render(text, ::sdl2_ttf::blended(color)).ok()
+					//? If THIS worked, we try to make this surface into a texture.
+				//? 	.and_then(|surf| self.renderer.create_texture_from_surface(&surf).ok()
+					//? if *THIS* worked, we can load
+				//? 	.map(Sprite::new))
+		}
 }
 
 impl<'window> Drop for Phi<'window> {
@@ -96,6 +134,7 @@ pub fn spawn<F>(title: &str, init: F) where F: Fn(&mut Phi) -> Box<View> {
     let sdl_context = ::sdl2::init().unwrap();
     let video = sdl_context.video().unwrap();
     let mut timer = sdl_context.timer().unwrap();
+		let _ttf_context = ::sdl2_ttf::init();
 
     // Create the window
     let window = video.window(title, 800, 600)
