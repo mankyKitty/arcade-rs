@@ -2,12 +2,18 @@ use ::phi::{Phi, View, ViewAction};
 use ::phi::data::Rectangle;
 use ::phi::gfx::{Sprite, CopySprite};
 
+use ::views::shared::Background;
+
 use ::sdl2::pixels::Color;
 
 pub struct MainMenuView {
 	actions: Vec<Action>,
 	selected: i8, //? Use an i8 (0..) so we don't decrement below 0
 	elapsed: f64,
+	
+	bg_back: Background,
+	bg_middle: Background,
+	bg_front: Background,
 }
 
 impl MainMenuView {
@@ -24,6 +30,22 @@ impl MainMenuView {
 			//? Start with nothing selected.
 			selected: 0,
 			elapsed: 0.0,
+			
+			bg_back: Background {
+				pos: 0.0,
+				vel: 20.0,
+				sprite: Sprite::load(&mut phi.renderer, "assets/starBG.png").unwrap(),
+			},
+			bg_middle: Background {
+				pos: 0.0,
+				vel: 40.0,
+				sprite: Sprite::load(&mut phi.renderer, "assets/starMG.png").unwrap(),
+			},
+			bg_front: Background {
+				pos: 0.0,
+				vel: 80.0,
+				sprite: Sprite::load(&mut phi.renderer, "assets/starFG.png").unwrap(),
+			},
 		}
 	}
 }
@@ -64,6 +86,11 @@ impl View for MainMenuView {
 		phi.renderer.set_draw_color(Color::RGB(0,0,0));
 		phi.renderer.clear();
 
+		// Render the backgrounds
+		self.bg_back.render(&mut phi.renderer, elapsed);
+		self.bg_middle.render(&mut phi.renderer, elapsed);
+		self.bg_front.render(&mut phi.renderer, elapsed);
+		
 		let (win_w,win_h) = phi.output_size();
 		let label_h = 50.0;
 		let border_width = 3.0;
